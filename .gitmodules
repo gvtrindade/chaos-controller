@@ -1,0 +1,9 @@
+[submodule "NRF24/lib/RF24Network"]
+	path = NRF24/lib/RF24Network
+	url = https://github.com/nRF24/RF24Network
+[submodule "NRF24/lib/RF24"]
+	path = NRF24/lib/RF24
+	url = https://github.com/nRF24/RF24
+[submodule "NRF24/lib/RF24Mesh"]
+	path = NRF24/lib/RF24Mesh
+	url = https://github.com/nRF24/RF24Mesh
