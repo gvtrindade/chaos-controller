@@ -37,12 +37,15 @@ pico_sdk_init()
 
 add_executable(NRF24 NRF24.cpp )
 
+target_sources(NRF24 PRIVATE
+    usb_descriptors.c
+)
+
 pico_set_program_name(NRF24 "NRF24")
 pico_set_program_version(NRF24 "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(NRF24 1)
-pico_enable_stdio_usb(NRF24 0)
 
 include(lib/RF24/CMakeLists.txt)
 include(lib/RF24Mesh/CMakeLists.txt)
@@ -55,11 +58,13 @@ target_link_libraries(NRF24
         RF24
         RF24Network
         RF24Mesh
+        tinyusb_device
         )
 
 # Add the standard include files to the build
 target_include_directories(NRF24 PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        lib/xinput
 )
 
 pico_add_extra_outputs(NRF24)
