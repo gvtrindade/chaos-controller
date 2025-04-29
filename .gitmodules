@@ -1,12 +1,12 @@
-[submodule "NRF24/lib/RF24Network"]
-	path = NRF24/lib/RF24Network
+[submodule "src/lib/RF24Network"]
+	path = src/lib/RF24Network
 	url = https://github.com/nRF24/RF24Network
-[submodule "NRF24/lib/RF24"]
-	path = NRF24/lib/RF24
+[submodule "src/lib/RF24"]
+	path = src/lib/RF24
 	url = https://github.com/nRF24/RF24
-[submodule "NRF24/lib/RF24Mesh"]
-	path = NRF24/lib/RF24Mesh
+[submodule "src/lib/RF24Mesh"]
+	path = src/lib/RF24Mesh
 	url = https://github.com/nRF24/RF24Mesh
-[submodule "NRF24/lib/tinyusb-xinput"]
-	path = NRF24/lib/tinyusb-xinput
+[submodule "src/lib/tinyusb-xinput"]
+	path = src/lib/tinyusb-xinput
 	url = https://github.com/gvtrindade/tinyusb-xinput
