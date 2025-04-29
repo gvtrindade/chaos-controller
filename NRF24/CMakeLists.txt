@@ -35,14 +35,12 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(NRF24 NRF24.cpp )
+add_executable(NRF24 main.cpp )
 
 target_sources(NRF24 PRIVATE
-    usb_descriptors.c
+    lib/tinyusb-xinput/usb_descriptors.c
+    lib/tinyusb-xinput/XInputPad.c
 )
-
-pico_set_program_name(NRF24 "NRF24")
-pico_set_program_version(NRF24 "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(NRF24 1)
@@ -64,7 +62,7 @@ target_link_libraries(NRF24
 # Add the standard include files to the build
 target_include_directories(NRF24 PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
-        lib/xinput
+        lib/tinyusb-xinput
 )
 
 pico_add_extra_outputs(NRF24)
