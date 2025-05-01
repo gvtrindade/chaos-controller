@@ -3,31 +3,27 @@
 #include <string.h>
 
 #include "tusb.h"
+#include "pico/stdlib.h"
 #include "hardware/spi.h"
 
 #include <RF24.h>
 #include "XInputPad.h"
+#include "comms.h"
+#include "utils.h"
 
-
-#define CE_PIN 1
-#define BUTTON_A_PIN 15
-#define BUTTON_B_PIN 14
-#define BUTTON_X_PIN 13
-#define BUTTON_Y_PIN 12
-#define BUTTON_RB_PIN 11
+#define CE_PIN 2
 
 uint8_t payload = 0;
 
-void master();
-void slave();
+void transmitter();
+void receiver();
 int pico_led_init();
 void pico_set_led(bool led_on);
-void loop_blink();
 void init_pin(int pin);
 bool is_button_pressed(int button);
 uint8_t bools_to_uint8(bool b0, bool b1, bool b2, bool b3, bool b4, bool b5, bool b6, bool b7);
 
-XInputReport XboxButtonData = {
+XInputReport buttonData = {
     .report_id = 0,
     .report_size = XINPUT_ENDPOINT_SIZE,
     .buttons1 = 0,
@@ -50,86 +46,115 @@ int main()
     pico_led_init();
     tusb_init();
 
+    bool is_transmitter = false;
+    if (!is_transmitter)
+    {
+        tud_disconnect();
+    }
+
     spi.begin(spi0, PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN);
     if (!radio.begin(&spi))
     {
-        loop_blink();
+        while (true)
+        {
+            loop_blink(1, 100);
+            sleep_ms(100);
+        }
     }
 
-    uint8_t address[2][6] = {"1Node", "2Node"};
-    bool radioNumber = 1;
-
-    radio.setPayloadSize(sizeof(payload));
+    radio.enableDynamicPayloads();
     radio.setPALevel(RF24_PA_LOW);
-    radio.openWritingPipe(address[radioNumber]);
-    radio.openReadingPipe(1, address[!radioNumber]);
+    radio.enableAckPayload();
 
-    bool is_slave = radioNumber;
-    if (is_slave)
+    if (is_transmitter)
     {
-        slave();
+        transmitter();
     }
     else
     {
-        master();
+        receiver();
     }
 }
 
-void master()
+void transmitter()
 {
-    radio.stopListening();
+    setup_transmitter(radio);
+    loop_transmitter(radio, buttonData);
 
-    unsigned int failures = 0;
-    uint8_t prev_state = 0;
+    // radio.stopListening();
+    // unsigned int failures = 0;
+    // uint8_t prev_state = 0;
 
-    while (true)
-    {
-        uint8_t state = bools_to_uint8(
-            0, !gpio_get(BUTTON_RB_PIN),
-            0, 0,
-            !gpio_get(BUTTON_A_PIN), !gpio_get(BUTTON_B_PIN),
-            !gpio_get(BUTTON_X_PIN), !gpio_get(BUTTON_Y_PIN)
-        );
+    // while (true)
+    // {
+    //     tud_task();
 
-        if (state != prev_state)
-        {
-            bool report = radio.write(&state, sizeof(payload));
-            pico_set_led(state);
+    //     uint8_t state = bools_to_uint8(
+    //         0, !gpio_get(BUTTON_RB_PIN),
+    //         0, 0,
+    //         !gpio_get(BUTTON_A_PIN), !gpio_get(BUTTON_B_PIN),
+    //         !gpio_get(BUTTON_X_PIN), !gpio_get(BUTTON_Y_PIN));
 
-            if (!report)
-            {
-                failures++;
-            }
-        }
+    //     if (state != prev_state)
+    //     {
+    //         buttonData.buttons2 = state;
 
-        prev_state = state;
-    }
+    //         if (tud_suspended())
+    //         {
+    //             // Wake up host if we are in suspend mode
+    //             // and REMOTE_WAKEUP feature is enabled by host
+    //             tud_remote_wakeup();
+    //         }
+
+    //         if (tud_ready())
+    //         {
+    //             sendReportData(&buttonData);
+    //         }
+    //         else
+    //         {
+    //             bool report = radio.write(&state, sizeof(payload));
+    //             pico_set_led(state);
+
+    //             if (!report)
+    //             {
+    //                 failures++;
+    //             }
+    //         }
+    //     }
+
+    //     prev_state = state;
+    // }
 }
 
-void slave()
+void receiver()
 {
-    radio.startListening();
+    setup_receiver(radio);
+    loop_blink(2, 80);
+    loop_receiver(radio, buttonData);
 
-    uint8_t prev_state = 0;
-    while (true)
-    {
-        uint8_t pipe;
-        if (radio.available(&pipe))
-        {
-            uint8_t bytes = radio.getPayloadSize();
-            radio.read(&payload, bytes);    
-            
-            if (payload != prev_state)
-            {
-                pico_set_led(payload);
-                XboxButtonData.buttons2 = payload;
-            }
-        }
+    // radio.startListening();
 
-        sendReportData(&XboxButtonData);
-        tud_task();
-        prev_state = payload;
-    }
+    // uint8_t prev_state = 0;
+    // while (true)
+    // {
+    //     tud_task();
+
+    //     uint8_t pipe;
+    //     if (radio.available(&pipe))
+    //     {
+    //         uint8_t bytes = radio.getPayloadSize();
+    //         radio.read(&payload, bytes);
+
+    //         if (payload != prev_state)
+    //         {
+    //             pico_set_led(payload);
+    //             buttonData.buttons2 = payload;
+    //         }
+    //     }
+
+    //     sendReportData(&buttonData);
+    //     prev_state = payload;
+    // }
 
     radio.stopListening();
 }
@@ -147,22 +172,6 @@ int pico_led_init(void)
     return PICO_OK;
 }
 
-void pico_set_led(bool led_on)
-{
-    gpio_put(PICO_DEFAULT_LED_PIN, led_on);
-}
-
-void loop_blink()
-{
-    while (true)
-    {
-        pico_set_led(true);
-        sleep_ms(100);
-        pico_set_led(false);
-        sleep_ms(100);
-    }
-}
-
 bool is_button_pressed(int button)
 {
     return !gpio_get(button);
@@ -173,26 +182,4 @@ void init_pin(int pin)
     gpio_init(pin);
     gpio_set_dir(pin, GPIO_IN);
     gpio_pull_up(pin);
-}
-
-uint8_t bools_to_uint8(bool b0, bool b1, bool b2, bool b3, bool b4, bool b5, bool b6, bool b7)
-{
-    uint8_t result = 0;
-    if (b0)
-        result |= (1 << 0);
-    if (b1)
-        result |= (1 << 1);
-    if (b2)
-        result |= (1 << 2);
-    if (b3)
-        result |= (1 << 3);
-    if (b4)
-        result |= (1 << 4);
-    if (b5)
-        result |= (1 << 5);
-    if (b6)
-        result |= (1 << 6);
-    if (b7)
-        result |= (1 << 7);
-    return result;
 }

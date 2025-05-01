@@ -28,29 +28,33 @@ set(PICO_BOARD pico CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(NRF24 C CXX ASM)
+set(project_name ChaosController)
+
+project(ChaosController C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(NRF24 main.cpp )
+add_executable(${project_name} main.cpp )
 
-target_sources(NRF24 PRIVATE
+target_sources(${project_name} PRIVATE
+    comms.cpp
+    utils.cpp
     lib/tinyusb-xinput/usb_descriptors.c
     lib/tinyusb-xinput/XInputPad.c
 )
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(NRF24 1)
+pico_enable_stdio_uart(${project_name} 1)
 
 include(lib/RF24/CMakeLists.txt)
 include(lib/RF24Mesh/CMakeLists.txt)
 include(lib/RF24Network/CMakeLists.txt)
 
 # Add the standard library to the build
-target_link_libraries(NRF24
+target_link_libraries(${project_name}
         pico_stdlib
         hardware_spi
         RF24
@@ -60,10 +64,10 @@ target_link_libraries(NRF24
         )
 
 # Add the standard include files to the build
-target_include_directories(NRF24 PRIVATE
+target_include_directories(${project_name} PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         lib/tinyusb-xinput
 )
 
-pico_add_extra_outputs(NRF24)
+pico_add_extra_outputs(${project_name})
 
