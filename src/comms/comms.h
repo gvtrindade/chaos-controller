@@ -21,6 +21,7 @@ struct RequestPacket {
 struct GrantPacket {
     bool granted = true;
     uint8_t comm_address[5];
+    uint16_t tx_id;
 };
 
 struct DataPacket {

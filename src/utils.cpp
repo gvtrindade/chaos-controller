@@ -1,8 +1,29 @@
 #include "utils.h"
 
-void pico_set_led(bool led_on)
+int pico_led_init(void)
 {
-    gpio_put(PICO_DEFAULT_LED_PIN, led_on);
+    init_pin(BUTTON_A_PIN);
+    init_pin(BUTTON_B_PIN);
+    init_pin(BUTTON_X_PIN);
+    init_pin(BUTTON_Y_PIN);
+    init_pin(BUTTON_LB_PIN);
+    init_pin(BUTTON_RB_PIN);
+
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    return PICO_OK;
+}
+
+void init_pin(int pin)
+{
+    gpio_init(pin);
+    gpio_set_dir(pin, GPIO_IN);
+    gpio_pull_up(pin);
+}
+
+bool is_button_pressed(int button)
+{
+    return !gpio_get(button);
 }
 
 void loop_blink(int times, int sleep)
@@ -13,6 +34,11 @@ void loop_blink(int times, int sleep)
         pico_set_led(false);
         sleep_ms(sleep);
     }
+}
+
+void pico_set_led(bool led_on)
+{
+    gpio_put(PICO_DEFAULT_LED_PIN, led_on);
 }
 
 uint8_t bools_to_uint8(bool b0, bool b1, bool b2, bool b3, bool b4, bool b5, bool b6, bool b7)

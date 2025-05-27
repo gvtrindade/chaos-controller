@@ -40,8 +40,9 @@ pico_sdk_init()
 add_executable(${project_name} main.cpp )
 
 target_sources(${project_name} PRIVATE
-    comms.cpp
     utils.cpp
+    comms/transmitter.cpp
+    comms/receiver.cpp
     lib/tinyusb-xinput/usb_descriptors.c
     lib/tinyusb-xinput/XInputPad.c
 )
