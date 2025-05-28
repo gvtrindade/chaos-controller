@@ -1,5 +1,14 @@
 #include "comms.h"
 
+// Methods
+void setup_transmitter(RF24 radio);
+void loop_transmitter(RF24 radio, XInputReport buttonData);
+void send_data(RF24 radio, XInputReport buttonData);
+void pair(RF24 radio);
+void confirm(RF24 radio, uint8_t conf_addr[6]);
+void save_new_id(ConfirmPacket confirmPacket);
+
+// Enums
 enum TxState
 {
     UNPAIRED,
@@ -8,21 +17,18 @@ enum TxState
 };
 TxState current_state = UNPAIRED;
 
-const uint8_t PAIR_ADDR[6] = "PAIR0";
-const unsigned long RETRY_DELAY = 500; // ms
-const unsigned long TIMEOUT_DELAY = 60000; // 1min
+// Contants
+const unsigned long RETRY_DELAY = 2000; // ms
 
-uint16_t my_id = 0;
+// Variables
 uint32_t timeSinceLastAttempt = 0;
-uint32_t timeSinceUnpaired = 0;
-bool isFirstExecution = true; 
+uint32_t unpairedTimer = 0;
+uint16_t my_id = 0;
+bool isFirstExecution = true;
+uint8_t coms_addr[6];
+int tries = 0;
 
-uint8_t comm_addr[6];
-
-void pair(RF24 radio);
-void send_data(RF24 radio, XInputReport buttonData);
-void save_new_id(GrantPacket grantAck);
-
+bool flDataSent = false;
 
 static inline uint32_t board_millis(void)
 {
@@ -33,14 +39,12 @@ void setup_transmitter(RF24 radio)
 {
     // Get last saved id
     // my_id = get_saved_id();
-    
     radio.setRetries(5, 15);
-    radio.openWritingPipe(PAIR_ADDR);
+    printf("Transmitter: Starting transmitter module\n");
 }
 
 void loop_transmitter(RF24 radio, XInputReport buttonData)
 {
-    timeSinceUnpaired = board_millis();
     bool prev_state = 0;
 
     while (true)
@@ -58,6 +62,7 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
         if (state != prev_state)
         {
             buttonData.buttons2 = state;
+            printf("Transmitter: Button changed\n");
             pico_set_led(state);
         }
 
@@ -80,29 +85,38 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
             pair(radio);
         }
 
-        // Unpair from current receiver
-        if (current_state == PAIRED && !gpio_get(BUTTON_RB_PIN))
+        if (tries >= 3)
         {
-            current_state = UNPAIRED;
-            radio.openWritingPipe(PAIR_ADDR);
-            timeSinceUnpaired = board_millis();
+            printf("Transmitter: Max tries exceded, closing program\n");
+            break;
         }
 
-        // Stop loop to turn off controller
-        // if (current_state == UNPAIRED && (board_millis() - timeSinceUnpaired) > RETRY_DELAY) {
-        //     break;
+        // Unpair from current receiver
+        // if (current_state == PAIRED && !gpio_get(BUTTON_RB_PIN))
+        // {
+        //     current_state = UNPAIRED;
+        //     radio.openWritingPipe(PAIR_ADDR);
+        //     unpairedTimer = board_millis();
         // }
+
+        // Stop loop to turn off controller
+        // if (current_state == UNPAIRED && (board_millis() - unpairedTimer) >= SYNC_TIMEOUT) {
+        //     break;
         // }
 
         prev_state = state;
-
     }
 }
 
 void send_data(RF24 radio, XInputReport buttonData)
 {
+    if (!flDataSent)
+    {
+        flDataSent = true;
+        printf("Transmitter: Data sent!\n");
+    }
+
     DataPacket data_to_send;
-    data_to_send.type = DATA;
     data_to_send.buttons2 = buttonData.buttons2;
 
     radio.setPayloadSize(sizeof(DataPacket));
@@ -116,56 +130,108 @@ void pair(RF24 radio)
     loop_blink(1, 100);
 
     RequestPacket req;
-    if (my_id != 0) {
+    if (my_id)
+    {
         req.tx_id = my_id;
     }
+    req.type = REQUEST_PAIR;
 
+    printf("Transmitter: Sending pair msg\n");
+    radio.openWritingPipe(PAIR_ADDR);
     radio.setPayloadSize(sizeof(RequestPacket));
     bool report = radio.write(&req, sizeof(req));
-    
+
     if (report)
     {
         if (radio.available())
         {
-            GrantPacket grantAck;
-            radio.read(&grantAck, sizeof(grantAck));
+            PairPacket pairPacket;
+            radio.read(&pairPacket, sizeof(pairPacket));
 
-            if (grantAck.granted)
+            if (pairPacket.available)
             {
-                memcpy(comm_addr, grantAck.comm_address, 5);
-                comm_addr[5] = 0; // Make it readable string
-                printf("Transmitter: Pairing granted! Using address: %i\n", comm_addr);
-
-                loop_blink(4, 80);
-
-                current_state = PAIRED;
-                radio.openWritingPipe(comm_addr); // Use the new address
-                save_new_id(grantAck);
+                uint8_t conf_addr[6];
+                memcpy(conf_addr, pairPacket.conf_addr, 5);
+                conf_addr[5] = 0; // Make it readable string
+                printf("Transmitter: Conf: %s\n", conf_addr);
+                confirm(radio, conf_addr);
             }
             else
             {
                 printf("Transmitter: Pairing denied by receiver\n");
-                timeSinceLastAttempt = board_millis();
+                tries++;
             }
         }
         else
         {
-            printf("Transmitter: ACK received, but no grant payload (or RX busy)\n");
-            timeSinceLastAttempt = board_millis();
+            printf("Transmitter: Pairing ACK received, but no grant payload\n");
+            tries++;
         }
     }
     else
     {
         printf("Transmitter: Pairing request failed (no ACK)\n");
-        timeSinceLastAttempt = board_millis();
+        tries++;
+    }
+    timeSinceLastAttempt = board_millis();
+}
+
+void confirm(RF24 radio, uint8_t conf_addr[6])
+{
+    printf("Transmitter: Sending confirm msg\n");
+    radio.openWritingPipe(conf_addr);
+
+    RequestPacket req;
+    if (my_id)
+    {
+        req.tx_id = my_id;
+    }
+    req.type = REQUEST_CONFIRM;
+
+    radio.setPayloadSize(sizeof(ConfirmPacket));
+    bool report = radio.write(&req, sizeof(req));
+
+    if (report)
+    {
+        if (radio.available())
+        {
+            ConfirmPacket confirmPacket;
+            radio.read(&confirmPacket, sizeof(confirmPacket));
+
+            if (my_id && my_id != confirmPacket.tx_id)
+            {
+                printf("Transmitter: Confirm denied, invalid id\n");
+            }
+            else if ((my_id && my_id == confirmPacket.tx_id) || !my_id)
+            {
+                memcpy(coms_addr, confirmPacket.comm_addr, 5);
+                coms_addr[5] = 0; // Make it readable string
+                printf("Transmitter: Pairing granted! Using address: %s\n", coms_addr);
+                radio.openWritingPipe(coms_addr);
+
+                current_state = PAIRED;
+                loop_blink(4, 80);
+                // save_new_id(confirmPacket);
+            }
+        }
+        else
+        {
+            printf("Transmitter: Confirm ACK received, but no payload\n");
+            tries++;
+        }
+    }
+    else
+    {
+        printf("Transmitter: Confirm request failed (no ACK)\n");
+        tries++;
     }
 }
 
-void save_new_id(GrantPacket grantAck)
+void save_new_id(ConfirmPacket confirmPacket)
 {
-    if (grantAck.tx_id)
+    if (confirmPacket.tx_id)
     {
-        my_id = grantAck.tx_id;
+        my_id = confirmPacket.tx_id;
         // TODO: Save new id to storage
     }
 }

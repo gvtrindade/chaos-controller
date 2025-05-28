@@ -57,6 +57,7 @@ include(lib/RF24Network/CMakeLists.txt)
 # Add the standard library to the build
 target_link_libraries(${project_name}
         pico_stdlib
+        pico_rand
         hardware_spi
         RF24
         RF24Network

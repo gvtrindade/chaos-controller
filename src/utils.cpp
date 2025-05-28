@@ -62,3 +62,16 @@ uint8_t bools_to_uint8(bool b0, bool b1, bool b2, bool b3, bool b4, bool b5, boo
         result |= (1 << 7);
     return result;
 }
+
+const char CHARACTER_SET[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const int CHARACTER_SET_LENGTH = sizeof(CHARACTER_SET) - 1;
+
+void generate_random_addr(uint8_t *output_buffer) {
+    output_buffer[0] = 65;
+    for (int i = 1; i < 5; i++) {
+        int random_index = get_rand_32() % CHARACTER_SET_LENGTH;
+        printf("Receiver: Char: %i\n", random_index);
+        output_buffer[i] = CHARACTER_SET[random_index];
+    }
+    output_buffer[5] = 0;
+}

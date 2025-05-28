@@ -1,15 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <RF24.h>
 
 #include "tusb.h"
-#include "pico/stdlib.h"
-#include "hardware/spi.h"
 #include "XInputPad.h"
+#include "hardware/spi.h"
+#include "pico/stdlib.h"
 
-#include "comms/comms.h"
 #include "utils.h"
+#include "comms/comms.h"
 
 #define CE_PIN 2
 
@@ -55,9 +52,9 @@ int main()
     radio.enableAckPayload();
     
     // Set board type
-    bool is_transmitter = true;
+    bool isTransmitter = false;
     
-    if (is_transmitter)
+    if (isTransmitter)
     {
         setup_transmitter(radio);
         loop_transmitter(radio, buttonData);
