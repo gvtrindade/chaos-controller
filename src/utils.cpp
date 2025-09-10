@@ -2,12 +2,17 @@
 
 int pico_led_init(void)
 {
-    init_pin(BUTTON_A_PIN);
-    init_pin(BUTTON_B_PIN);
-    init_pin(BUTTON_X_PIN);
-    init_pin(BUTTON_Y_PIN);
-    init_pin(BUTTON_LB_PIN);
-    init_pin(BUTTON_RB_PIN);
+    init_pin(BUTTON_SYNC_PIN);
+    init_pin(BUTTON_WHA_PIN);
+    init_pin(BUTTON_SGRE_PIN);
+    init_pin(BUTTON_SRED_PIN);
+    init_pin(BUTTON_SYEL_PIN);
+    init_pin(BUTTON_SBLU_PIN);
+    init_pin(BUTTON_SORA_PIN);
+    init_pin(PLAY1_LED_PIN);
+    init_pin(PLAY2_LED_PIN);
+    init_pin(PLAY3_LED_PIN);
+    init_pin(PLAY4_LED_PIN);
 
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
@@ -61,6 +66,13 @@ uint8_t bools_to_uint8(bool b0, bool b1, bool b2, bool b3, bool b4, bool b5, boo
     if (b7)
         result |= (1 << 7);
     return result;
+}
+
+void update_special_color_button(int pin, uint8_t* buttons1_state, uint8_t* buttons2_state, int bit) {
+    if (!gpio_get(pin)) {
+        *buttons1_state |= (1 << 0);
+        *buttons2_state |= (1 << bit);
+    }
 }
 
 const char CHARACTER_SET[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

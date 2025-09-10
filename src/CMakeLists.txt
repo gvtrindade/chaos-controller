@@ -59,6 +59,7 @@ target_link_libraries(${project_name}
         pico_stdlib
         pico_rand
         hardware_spi
+        hardware_i2c
         RF24
         RF24Network
         RF24Mesh

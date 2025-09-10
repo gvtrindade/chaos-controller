@@ -2,12 +2,19 @@
 #include "pico/rand.h"
 #include <stdio.h>
 
-#define BUTTON_A_PIN 15
-#define BUTTON_B_PIN 14
-#define BUTTON_X_PIN 13
-#define BUTTON_Y_PIN 12
-#define BUTTON_LB_PIN 10
-#define BUTTON_RB_PIN 11
+// Pico pins
+#define BUTTON_SYNC_PIN 3
+#define BUTTON_WHA_PIN 6
+#define BUTTON_SGRE_PIN 7
+#define BUTTON_SRED_PIN 8
+#define BUTTON_SYEL_PIN 9
+#define BUTTON_SBLU_PIN 10
+#define BUTTON_SORA_PIN 11
+
+#define PLAY1_LED_PIN 12
+#define PLAY2_LED_PIN 13
+#define PLAY3_LED_PIN 14
+#define PLAY4_LED_PIN 15
 
 // IO Methods
 int pico_led_init();
@@ -17,5 +24,5 @@ bool is_button_pressed(int button);
 void loop_blink(int times, int sleep);
 
 // General Methods
-uint8_t bools_to_uint8(bool b0, bool b1, bool b2, bool b3, bool b4, bool b5, bool b6, bool b7);
+void update_special_color_button(int pin, uint8_t* buttons1_state, uint8_t* buttons2_state, int bit);
 void generate_random_addr(uint8_t *output_buffer);

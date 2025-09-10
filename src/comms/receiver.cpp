@@ -135,7 +135,7 @@ void loop_receiver(RF24 radio, XInputReport buttonData)
         }
 
         // Sync button pressed
-        if (!gpio_get(BUTTON_RB_PIN))
+        if (!gpio_get(BUTTON_SYNC_PIN))
         {
             isSyncing = true;
             syncTimer = board_millis();

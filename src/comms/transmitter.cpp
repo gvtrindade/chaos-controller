@@ -39,58 +39,113 @@ void setup_transmitter(RF24 radio)
 {
     // Get last saved id
     // my_id = get_saved_id();
-    radio.setRetries(5, 15);
+    // radio.setRetries(5, 15);
     printf("Transmitter: Starting transmitter module\n");
 }
 
+
+
 void loop_transmitter(RF24 radio, XInputReport buttonData)
 {
-    bool prev_state = 0;
+    uint8_t b1_prev_state = 0;
+    uint8_t b2_prev_state = 0;
+
+    int spec_buttons[5] = {
+        BUTTON_SGRE_PIN, BUTTON_SRED_PIN, BUTTON_SYEL_PIN,
+        BUTTON_SBLU_PIN, BUTTON_SORA_PIN
+    };
+
+    int bits[5] = {4, 5, 6, 7, 1};
 
     while (true)
     {
         // Update USB stack
         tud_task();
 
-        // Mount data to be sent
-        uint8_t state = bools_to_uint8(
-            0, !gpio_get(BUTTON_LB_PIN),
-            0, 0,
-            !gpio_get(BUTTON_A_PIN), !gpio_get(BUTTON_B_PIN),
-            !gpio_get(BUTTON_X_PIN), !gpio_get(BUTTON_Y_PIN));
+        // Get data from chips
+        uint8_t received_data[NUM_CHIPS];
 
-        if (state != prev_state)
-        {
-            buttonData.buttons2 = state;
-            printf("Transmitter: Button changed\n");
-            pico_set_led(state);
+        // Read data from each chip
+        for (int i = 0; i < NUM_CHIPS; i++) {
+            int result = i2c_read_blocking(I2C_PORT, CHIP_ADDRS[i], &received_data[i], 1, false);
+            if (result == PICO_ERROR_GENERIC) {
+                printf("Error: No device found at address 0x%02X\n", CHIP_ADDRS[i]);
+                received_data[i] = 0xFF; // Set to default state on error
+            }
         }
 
-        // if (tud_suspended())
-        //     tud_remote_wakeup();
+        bool led_off = true;
+        uint8_t buttons1_state = 0; 
+        uint8_t buttons2_state = 0;
+
+        // Face Buttons, Strum acts as UP or DOWN
+        if (!(received_data[0] & BUTTON_UP_ADDR))    buttons1_state |= (1 << 0); // Set bit 0
+        if (!(received_data[1] & BUTTON_STRU_ADDR))  buttons1_state |= (1 << 0); // Set bit 0
+        if (!(received_data[0] & BUTTON_DOWN_ADDR))  buttons1_state |= (1 << 1); // Set bit 1
+        if (!(received_data[1] & BUTTON_STRD_ADDR))  buttons1_state |= (1 << 1); // Set bit 1
+        if (!(received_data[0] & BUTTON_LEFT_ADDR))  buttons1_state |= (1 << 2); // Set bit 2
+        if (!(received_data[0] & BUTTON_RIGHT_ADDR)) buttons1_state |= (1 << 3); // Set bit 3
+
+        // Action Buttons
+        if (!(received_data[0] & BUTTON_SELEC_ADDR)) buttons1_state |= (1 << 4); // Set bit 4
+        if (!(received_data[0] & BUTTON_START_ADDR)) buttons1_state |= (1 << 5); // Set bit 5
+        if (!(received_data[0] & BUTTON_XCE_ADDR))  buttons2_state |= (1 << 2); // Set bit 1
+
+        // Color buttons
+        if (!(received_data[1] & BUTTON_ORA_ADDR))   buttons2_state |= (1 << 1); // Set bit 1
+        if (!(received_data[1] & BUTTON_GRE_ADDR))   buttons2_state |= (1 << 4); // Set bit 4
+        if (!(received_data[1] & BUTTON_RED_ADDR))   buttons2_state |= (1 << 5); // Set bit 5
+        if (!(received_data[1] & BUTTON_YEL_ADDR))   buttons2_state |= (1 << 6); // Set bit 6
+        if (!(received_data[1] & BUTTON_BLU_ADDR))   buttons2_state |= (1 << 7); // Set bit 7
+
+        // Special color buttons
+        for (int i = 0; i < 5; i++) {
+            update_special_color_button(spec_buttons[i], &buttons1_state, &buttons2_state, bits[i]);
+            led_off = false;
+        }
+
+        if (buttons1_state != b1_prev_state || buttons2_state != b2_prev_state)
+        {
+            buttonData.buttons1 = buttons1_state;
+            buttonData.buttons2 = buttons2_state;
+            printf("Transmitter: Button changed\n");
+            led_off = false;
+        }
+
+        // Guitar special
+        if (!(received_data[0] & BUTTON_SPEC_ADDR)) {
+            buttonData.ry = 20000;
+            led_off = false;
+        } else {
+            buttonData.ry = -20000;
+        }
+
+        pico_set_led(led_off);
+
+        if (tud_suspended()) tud_remote_wakeup();
 
         // Send via USB if it is connected, else send to receiver
-        // if (tud_ready())
-        // {
-        //     sendReportData(&buttonData);
-        // }
+        if (tud_ready())
+        {
+            sendReportData(&buttonData);
+        }
         // else
         // {
-        if (current_state == PAIRED)
-        {
-            send_data(radio, buttonData);
-        }
-        else if (current_state == UNPAIRED && (board_millis() - timeSinceLastAttempt) > RETRY_DELAY)
-        {
-            pair(radio);
-        }
+        //     if (current_state == PAIRED)
+        //     {
+        //         send_data(radio, buttonData);
+        //     }
+        //     else if (current_state == UNPAIRED && (board_millis() - timeSinceLastAttempt) > RETRY_DELAY)
+        //     {
+        //         pair(radio);
+        //     }
 
-        if (tries >= 3)
-        {
-            printf("Transmitter: Max tries exceded, closing program\n");
-            break;
-        }
-
+        //     if (tries >= 3)
+        //     {
+        //         printf("Transmitter: Max tries exceded, closing program\n");
+        //         break;
+        //     }
+        // }
         // Unpair from current receiver
         // if (current_state == PAIRED && !gpio_get(BUTTON_RB_PIN))
         // {
@@ -104,7 +159,8 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
         //     break;
         // }
 
-        prev_state = state;
+        b1_prev_state = buttons1_state;
+        b2_prev_state = buttons2_state;
     }
 }
 
