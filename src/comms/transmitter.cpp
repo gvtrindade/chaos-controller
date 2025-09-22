@@ -1,4 +1,5 @@
 #include "comms.h"
+#include "i2c.h"
 
 // Methods
 void setup_transmitter(RF24 radio);
@@ -39,7 +40,11 @@ void setup_transmitter(RF24 radio)
 {
     // Get last saved id
     // my_id = get_saved_id();
-    // radio.setRetries(5, 15);
+    i2c_init(I2C_PORT, 100 * 1000);
+    gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C);
+
+    radio.setRetries(5, 15);
     printf("Transmitter: Starting transmitter module\n");
 }
 
@@ -54,7 +59,6 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
         BUTTON_SGRE_PIN, BUTTON_SRED_PIN, BUTTON_SYEL_PIN,
         BUTTON_SBLU_PIN, BUTTON_SORA_PIN
     };
-
     int bits[5] = {4, 5, 6, 7, 1};
 
     while (true)
@@ -68,16 +72,17 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
         // Read data from each chip
         for (int i = 0; i < NUM_CHIPS; i++) {
             int result = i2c_read_blocking(I2C_PORT, CHIP_ADDRS[i], &received_data[i], 1, false);
+
             if (result == PICO_ERROR_GENERIC) {
                 printf("Error: No device found at address 0x%02X\n", CHIP_ADDRS[i]);
                 received_data[i] = 0xFF; // Set to default state on error
             }
+
         }
 
-        bool led_off = true;
-        uint8_t buttons1_state = 0; 
+        uint8_t buttons1_state = 0;
         uint8_t buttons2_state = 0;
-
+        
         // Face Buttons, Strum acts as UP or DOWN
         if (!(received_data[0] & BUTTON_UP_ADDR))    buttons1_state |= (1 << 0); // Set bit 0
         if (!(received_data[1] & BUTTON_STRU_ADDR))  buttons1_state |= (1 << 0); // Set bit 0
@@ -101,63 +106,63 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
         // Special color buttons
         for (int i = 0; i < 5; i++) {
             update_special_color_button(spec_buttons[i], &buttons1_state, &buttons2_state, bits[i]);
-            led_off = false;
         }
 
-        if (buttons1_state != b1_prev_state || buttons2_state != b2_prev_state)
-        {
+        if (buttons1_state != b1_prev_state) {
             buttonData.buttons1 = buttons1_state;
+            pico_set_led(buttons1_state);
+        }
+        
+        if (buttons2_state != b2_prev_state) {
             buttonData.buttons2 = buttons2_state;
-            printf("Transmitter: Button changed\n");
-            led_off = false;
+            pico_set_led(buttons2_state);
         }
 
         // Guitar special
         if (!(received_data[0] & BUTTON_SPEC_ADDR)) {
             buttonData.ry = 20000;
-            led_off = false;
         } else {
             buttonData.ry = -20000;
         }
 
-        pico_set_led(led_off);
-
-        if (tud_suspended()) tud_remote_wakeup();
+        if (tud_suspended())
+            tud_remote_wakeup();
 
         // Send via USB if it is connected, else send to receiver
         if (tud_ready())
         {
             sendReportData(&buttonData);
         }
-        // else
-        // {
-        //     if (current_state == PAIRED)
-        //     {
-        //         send_data(radio, buttonData);
-        //     }
-        //     else if (current_state == UNPAIRED && (board_millis() - timeSinceLastAttempt) > RETRY_DELAY)
-        //     {
-        //         pair(radio);
-        //     }
+        else
+        {
+            if (current_state == PAIRED)
+            {
+                send_data(radio, buttonData);
+            }
+            else if (current_state == UNPAIRED && (board_millis() - timeSinceLastAttempt) > RETRY_DELAY)
+            {
+                pair(radio);
+            }
 
-        //     if (tries >= 3)
-        //     {
-        //         printf("Transmitter: Max tries exceded, closing program\n");
-        //         break;
-        //     }
-        // }
-        // Unpair from current receiver
-        // if (current_state == PAIRED && !gpio_get(BUTTON_RB_PIN))
-        // {
-        //     current_state = UNPAIRED;
-        //     radio.openWritingPipe(PAIR_ADDR);
-        //     unpairedTimer = board_millis();
-        // }
+            if (tries >= 3)
+            {
+                printf("Transmitter: Max tries exceded, closing program\n");
+                break;
+            }
 
-        // Stop loop to turn off controller
-        // if (current_state == UNPAIRED && (board_millis() - unpairedTimer) >= SYNC_TIMEOUT) {
-        //     break;
-        // }
+            // Unpair from current receiver
+            // if (current_state == PAIRED && !gpio_get(BUTTON_SYNC_PIN))
+            // {
+            //     current_state = UNPAIRED;
+            //     radio.openWritingPipe(PAIR_ADDR);
+            //     unpairedTimer = board_millis();
+            // }
+
+            // Stop loop to turn off controller
+            // if (current_state == UNPAIRED && (board_millis() - unpairedTimer) >= SYNC_TIMEOUT) {
+            //     break;
+            // }
+        }
 
         b1_prev_state = buttons1_state;
         b2_prev_state = buttons2_state;
@@ -173,7 +178,14 @@ void send_data(RF24 radio, XInputReport buttonData)
     }
 
     DataPacket data_to_send;
+    data_to_send.buttons1 = buttonData.buttons1;
     data_to_send.buttons2 = buttonData.buttons2;
+    data_to_send.lt = buttonData.lt;
+    data_to_send.rt = buttonData.rt;
+    data_to_send.lx = buttonData.lx;
+    data_to_send.ly = buttonData.ly;
+    data_to_send.rx = buttonData.rx;
+    data_to_send.ry = buttonData.ry;
 
     radio.setPayloadSize(sizeof(DataPacket));
     radio.write(&data_to_send, sizeof(data_to_send));

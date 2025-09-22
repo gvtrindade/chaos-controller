@@ -230,8 +230,8 @@ void receive_data(RF24 radio, XInputReport buttonData, DataPacket *prevState)
 
     if (data_packet.operator==(*prevState))
     {
-        pico_set_led(data_packet.buttons2);
         update_button_data(&buttonData, data_packet);
+        pico_set_led(data_packet.buttons1 || data_packet.buttons2 || data_packet.ry);
     }
 
     sendReportData(&buttonData);

@@ -3,13 +3,14 @@
 #include <stdio.h>
 
 // Pico pins
-#define BUTTON_SYNC_PIN 3
-#define BUTTON_WHA_PIN 6
-#define BUTTON_SGRE_PIN 7
-#define BUTTON_SRED_PIN 8
+#define BUTTON_SYNC_PIN 2
+
+#define BUTTON_WHA_PIN 3
+#define BUTTON_SGRE_PIN 6
+#define BUTTON_SRED_PIN 7
 #define BUTTON_SYEL_PIN 9
-#define BUTTON_SBLU_PIN 10
-#define BUTTON_SORA_PIN 11
+#define BUTTON_SBLU_PIN 8
+#define BUTTON_SORA_PIN 10
 
 #define PLAY1_LED_PIN 12
 #define PLAY2_LED_PIN 13
