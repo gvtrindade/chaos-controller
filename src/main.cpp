@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "comms/comms.h"
 
-#define CE_PIN 2
+#define CE_PIN 20
 
 uint8_t payload = 0;
 

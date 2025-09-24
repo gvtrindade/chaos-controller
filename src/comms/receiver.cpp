@@ -234,7 +234,9 @@ void receive_data(RF24 radio, XInputReport buttonData, DataPacket *prevState)
         update_button_data(&buttonData, data_packet);
     }
 
-    sendReportData(&buttonData);
+    if (tud_ready()) {
+        sendReportData(&buttonData);
+    }
     *prevState = data_packet;
     lastPacketTimestamp = board_millis();
 }
