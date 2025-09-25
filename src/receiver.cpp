@@ -77,9 +77,23 @@ void write_pair_ack(RF24 radio)
     }
 }
 
-void loop_receiver(RF24 radio, XInputReport buttonData)
+void loop_receiver(RF24 radio)
 {
     DataPacket prevState;
+
+    XInputReport buttonData = {
+        .report_id = 0,
+        .report_size = XINPUT_ENDPOINT_SIZE,
+        .buttons1 = 0,
+        .buttons2 = 0,
+        .lt = 0,
+        .rt = 0,
+        .lx = GAMEPAD_JOYSTICK_MID,
+        .ly = GAMEPAD_JOYSTICK_MID,
+        .rx = GAMEPAD_JOYSTICK_MID,
+        .ry = GAMEPAD_JOYSTICK_MID,
+        ._reserved = {},
+    };
 
     while (true)
     {
@@ -225,18 +239,13 @@ void receive_data(RF24 radio, XInputReport buttonData, DataPacket *prevState)
 {
     DataPacket data_packet;
     radio.read(&data_packet, sizeof(data_packet));
-
+    update_button_data(&buttonData, data_packet);
+    
     tud_task();
-
-    if (data_packet.operator==(*prevState))
-    {
-        pico_set_led(data_packet.buttons2);
-        update_button_data(&buttonData, data_packet);
-    }
-
     if (tud_ready()) {
         sendReportData(&buttonData);
     }
+
     *prevState = data_packet;
     lastPacketTimestamp = board_millis();
 }

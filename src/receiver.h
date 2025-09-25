@@ -47,20 +47,7 @@ struct DataPacket
     int16_t ly;
     int16_t rx;
     int16_t ry;
-
-    bool operator==(const DataPacket &other) const {
-    return this->buttons1 == other.buttons1
-        && this->buttons2 == other.buttons2
-        && this->lt == other.lt
-        && this->rt == other.rt
-        && this->lx == other.lx
-        && this->ly == other.ly
-        && this->rx == other.rx
-        && this->ry == other.ry;
-  }
 };
 
 void setup_receiver(RF24 radio);
-void loop_receiver(RF24 radio, XInputReport buttonData);
-void setup_transmitter(RF24 radio);
-void loop_transmitter(RF24 radio, XInputReport buttonData);
+void loop_receiver(RF24 radio);
