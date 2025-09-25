@@ -2,11 +2,6 @@
 #include "pico/rand.h"
 #include <stdio.h>
 
-#define BUTTON_A_PIN 15
-#define BUTTON_B_PIN 14
-#define BUTTON_X_PIN 13
-#define BUTTON_Y_PIN 12
-#define BUTTON_LB_PIN 10
 #define BUTTON_RB_PIN 11
 
 // IO Methods

@@ -1,4 +1,4 @@
-#include "comms.h"
+#include "receiver.h"
 
 // Methods
 void setup_receiver(RF24 radio);

@@ -2,11 +2,6 @@
 
 int pico_led_init(void)
 {
-    init_pin(BUTTON_A_PIN);
-    init_pin(BUTTON_B_PIN);
-    init_pin(BUTTON_X_PIN);
-    init_pin(BUTTON_Y_PIN);
-    init_pin(BUTTON_LB_PIN);
     init_pin(BUTTON_RB_PIN);
 
     gpio_init(PICO_DEFAULT_LED_PIN);

@@ -6,7 +6,7 @@
 #include "pico/stdlib.h"
 
 #include "utils.h"
-#include "comms/comms.h"
+#include "receiver.h"
 
 #define CE_PIN 20
 

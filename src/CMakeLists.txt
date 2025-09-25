@@ -41,8 +41,7 @@ add_executable(${project_name} main.cpp )
 
 target_sources(${project_name} PRIVATE
     utils.cpp
-    comms/transmitter.cpp
-    comms/receiver.cpp
+    receiver.cpp
     lib/tinyusb-xinput/usb_descriptors.c
     lib/tinyusb-xinput/XInputPad.c
 )
