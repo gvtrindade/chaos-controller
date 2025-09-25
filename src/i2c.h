@@ -5,7 +5,7 @@
 #define I2C_PORT i2c0
 
 // IO Expander addresses
-const uint8_t CHIP_ADDRS[] = {0x20, 0x21};
+const uint8_t CHIP_ADDRS[] = {0x20, 0x24};
 const int NUM_CHIPS = sizeof(CHIP_ADDRS) / sizeof(CHIP_ADDRS[0]);
 
 // Chip 0x20

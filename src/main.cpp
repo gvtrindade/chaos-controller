@@ -36,24 +36,17 @@ int main()
     pico_led_init();
     tusb_init();
 
-    // Init i2c
-    i2c_init(I2C_PORT, 100 * 1000);
-    gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C);
-
-
     // Init Radio
-    // spi.begin(spi0, PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN);
-    // if (!radio.begin(&spi))
-    // {
-    //     while (true)
-    //     {
-    //         loop_blink(1, 100);
-    //         sleep_ms(100);
-    //     }
-    // }
-    
-    
+    spi.begin(spi0, PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN);
+    if (!radio.begin(&spi))
+    {
+        while (true)
+        {
+            loop_blink(1, 100);
+            sleep_ms(100);
+        }
+    }
+        
     // Set board type
     bool isTransmitter = true;
     

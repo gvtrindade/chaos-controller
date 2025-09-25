@@ -2,7 +2,6 @@
 
 #include "tusb.h"
 #include "utils.h"
-#include "i2c.h"
 #include "XInputPad.h"
 #include "pico/stdlib.h"
 
