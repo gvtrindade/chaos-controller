@@ -12,20 +12,6 @@
 
 uint8_t payload = 0;
 
-XInputReport buttonData = {
-    .report_id = 0,
-    .report_size = XINPUT_ENDPOINT_SIZE,
-    .buttons1 = 0,
-    .buttons2 = 0,
-    .lt = 0,
-    .rt = 0,
-    .lx = GAMEPAD_JOYSTICK_MID,
-    .ly = GAMEPAD_JOYSTICK_MID,
-    .rx = GAMEPAD_JOYSTICK_MID,
-    .ry = GAMEPAD_JOYSTICK_MID,
-    ._reserved = {},
-};
-
 RF24 radio(CE_PIN, PICO_DEFAULT_SPI_CSN_PIN);
 SPI spi;
 
@@ -52,5 +38,5 @@ int main()
     radio.enableAckPayload();
 
     setup_transmitter(radio);
-    loop_transmitter(radio, buttonData);
+    loop_transmitter(radio);
 }

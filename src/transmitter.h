@@ -60,7 +60,5 @@ struct DataPacket
   }
 };
 
-void setup_receiver(RF24 radio);
-void loop_receiver(RF24 radio, XInputReport buttonData);
 void setup_transmitter(RF24 radio);
-void loop_transmitter(RF24 radio, XInputReport buttonData);
+void loop_transmitter(RF24 radio);

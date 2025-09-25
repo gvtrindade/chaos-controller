@@ -20,7 +20,6 @@ TxState current_state = UNPAIRED;
 
 // Contants
 const unsigned long RETRY_DELAY = 2000; // ms
-const unsigned int POT_TRESHOLD = 100;
 
 // Variables
 uint32_t timeSinceLastAttempt = 0;
@@ -29,8 +28,6 @@ uint16_t my_id = 0;
 bool isFirstExecution = true;
 uint8_t coms_addr[6];
 int tries = 0;
-
-bool flDataSent = false;
 
 static inline uint32_t board_millis(void)
 {
@@ -51,11 +48,21 @@ void setup_transmitter(RF24 radio)
 
 
 
-void loop_transmitter(RF24 radio, XInputReport buttonData)
+void loop_transmitter(RF24 radio)
 {
-    uint8_t b1_prev_state = 0;
-    uint8_t b2_prev_state = 0;
-    uint16_t adc_prev = 0;
+    XInputReport buttonData = {
+        .report_id = 0,
+        .report_size = XINPUT_ENDPOINT_SIZE,
+        .buttons1 = 0,
+        .buttons2 = 0,
+        .lt = 0,
+        .rt = 0,
+        .lx = GAMEPAD_JOYSTICK_MID,
+        .ly = GAMEPAD_JOYSTICK_MID,
+        .rx = GAMEPAD_JOYSTICK_MID,
+        .ry = GAMEPAD_JOYSTICK_MID,
+        ._reserved = {},
+    };
 
     int spec_buttons[5] = {
         BUTTON_SGRE_PIN, BUTTON_SRED_PIN, BUTTON_SYEL_PIN,
@@ -83,7 +90,7 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
         }
 
         // Get data from adc
-        uint16_t adc_result = adc_read();
+        uint16_t potentiometerResult = adc_read();
 
         uint8_t buttons1_state = 0;
         uint8_t buttons2_state = 0;
@@ -113,37 +120,21 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
             update_special_color_button(spec_buttons[i], &buttons1_state, &buttons2_state, bits[i]);
         }
 
-        if (abs(adc_result) != adc_prev) {
-            buttonData.rx = adc_result;
-        }
-
-        if (buttons1_state != b1_prev_state) {
-            buttonData.buttons1 = buttons1_state;
-            pico_set_led(buttons1_state);
-        }
-        
-        if (buttons2_state != b2_prev_state) {
-            buttonData.buttons2 = buttons2_state;
-            pico_set_led(buttons2_state);
-        }
-
-        // Guitar special
-        if (!(received_data[0] & BUTTON_SPEC_ADDR)) {
-            buttonData.ry = 20000;
-        } else {
-            buttonData.ry = -20000;
-        }
+        buttonData.buttons2 = buttons2_state;
+        buttonData.buttons1 = buttons1_state;
+        buttonData.ry = !(received_data[0] & BUTTON_SPEC_ADDR) ? 20000 : 0;
+        buttonData.rx = potentiometerResult * 5;
 
         if (tud_suspended())
             tud_remote_wakeup();
 
         // Send via USB if it is connected, else send to receiver
-        // if (tud_ready())
-        // {
-        //     sendReportData(&buttonData);
-        // }
-        // else
-        // {
+        if (tud_ready())
+        {
+            sendReportData(&buttonData);
+        }
+        else
+        {
             if (current_state == PAIRED)
             {
                 send_data(radio, buttonData);
@@ -171,22 +162,12 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
             // if (current_state == UNPAIRED && (board_millis() - unpairedTimer) >= SYNC_TIMEOUT) {
             //     break;
             // }
-        // }
-
-        b1_prev_state = buttons1_state;
-        b2_prev_state = buttons2_state;
-        adc_prev = adc_result;
+        }
     }
 }
 
 void send_data(RF24 radio, XInputReport buttonData)
 {
-    if (!flDataSent)
-    {
-        flDataSent = true;
-        printf("Transmitter: Data sent!\n");
-    }
-
     DataPacket data_to_send;
     data_to_send.buttons1 = buttonData.buttons1;
     data_to_send.buttons2 = buttonData.buttons2;
@@ -199,8 +180,6 @@ void send_data(RF24 radio, XInputReport buttonData)
 
     radio.setPayloadSize(sizeof(DataPacket));
     radio.write(&data_to_send, sizeof(data_to_send));
-
-    delay(10); // Small delay between data sends
 }
 
 void pair(RF24 radio)
