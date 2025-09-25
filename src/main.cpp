@@ -6,7 +6,7 @@
 #include "pico/stdlib.h"
 
 #include "utils.h"
-#include "comms/comms.h"
+#include "transmitter.h"
 
 #define CE_PIN 20
 
@@ -46,19 +46,11 @@ int main()
             sleep_ms(100);
         }
     }
-        
-    // Set board type
-    bool isTransmitter = true;
     
-    if (isTransmitter)
-    {
-        setup_transmitter(radio);
-        loop_transmitter(radio, buttonData);
-    }
-    else
-    {
-        tud_disconnect();
-        setup_receiver(radio);
-        loop_receiver(radio, buttonData);
-    }
+    radio.setPALevel(RF24_PA_LOW);
+    radio.enableDynamicPayloads();
+    radio.enableAckPayload();
+
+    setup_transmitter(radio);
+    loop_transmitter(radio, buttonData);
 }

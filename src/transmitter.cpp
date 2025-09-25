@@ -1,4 +1,4 @@
-#include "comms.h"
+#include "transmitter.h"
 #include "i2c.h"
 
 // Methods
@@ -20,6 +20,7 @@ TxState current_state = UNPAIRED;
 
 // Contants
 const unsigned long RETRY_DELAY = 2000; // ms
+const unsigned int POT_TRESHOLD = 100;
 
 // Variables
 uint32_t timeSinceLastAttempt = 0;
@@ -54,6 +55,7 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
 {
     uint8_t b1_prev_state = 0;
     uint8_t b2_prev_state = 0;
+    uint16_t adc_prev = 0;
 
     int spec_buttons[5] = {
         BUTTON_SGRE_PIN, BUTTON_SRED_PIN, BUTTON_SYEL_PIN,
@@ -79,6 +81,9 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
             }
 
         }
+
+        // Get data from adc
+        uint16_t adc_result = adc_read();
 
         uint8_t buttons1_state = 0;
         uint8_t buttons2_state = 0;
@@ -108,6 +113,10 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
             update_special_color_button(spec_buttons[i], &buttons1_state, &buttons2_state, bits[i]);
         }
 
+        if (abs(adc_result) != adc_prev) {
+            buttonData.rx = adc_result;
+        }
+
         if (buttons1_state != b1_prev_state) {
             buttonData.buttons1 = buttons1_state;
             pico_set_led(buttons1_state);
@@ -129,12 +138,12 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
             tud_remote_wakeup();
 
         // Send via USB if it is connected, else send to receiver
-        if (tud_ready())
-        {
-            sendReportData(&buttonData);
-        }
-        else
-        {
+        // if (tud_ready())
+        // {
+        //     sendReportData(&buttonData);
+        // }
+        // else
+        // {
             if (current_state == PAIRED)
             {
                 send_data(radio, buttonData);
@@ -144,11 +153,11 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
                 pair(radio);
             }
 
-            if (tries >= 3)
-            {
-                printf("Transmitter: Max tries exceded, closing program\n");
-                break;
-            }
+            // if (tries >= 3)
+            // {
+            //     printf("Transmitter: Max tries exceded, closing program\n");
+            //     break;
+            // }
 
             // Unpair from current receiver
             // if (current_state == PAIRED && !gpio_get(BUTTON_SYNC_PIN))
@@ -162,10 +171,11 @@ void loop_transmitter(RF24 radio, XInputReport buttonData)
             // if (current_state == UNPAIRED && (board_millis() - unpairedTimer) >= SYNC_TIMEOUT) {
             //     break;
             // }
-        }
+        // }
 
         b1_prev_state = buttons1_state;
         b2_prev_state = buttons2_state;
+        adc_prev = adc_result;
     }
 }
 

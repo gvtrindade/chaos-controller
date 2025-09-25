@@ -3,7 +3,6 @@
 int pico_led_init(void)
 {
     init_pin(BUTTON_SYNC_PIN);
-    init_pin(BUTTON_WHA_PIN);
     init_pin(BUTTON_SGRE_PIN);
     init_pin(BUTTON_SRED_PIN);
     init_pin(BUTTON_SYEL_PIN);
@@ -15,6 +14,8 @@ int pico_led_init(void)
     init_pin(PLAY3_LED_PIN);
     init_pin(PLAY4_LED_PIN);
 
+    init_adc(BUTTON_WHA_PIN);
+
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
     return PICO_OK;
@@ -25,6 +26,13 @@ void init_pin(int pin)
     gpio_init(pin);
     gpio_set_dir(pin, GPIO_IN);
     gpio_pull_up(pin);
+}
+
+void init_adc(int pin)
+{
+    adc_init();
+    adc_gpio_init(pin);
+    adc_select_input(0); 
 }
 
 bool is_button_pressed(int button)

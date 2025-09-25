@@ -41,8 +41,7 @@ add_executable(${project_name} main.cpp )
 
 target_sources(${project_name} PRIVATE
     utils.cpp
-    comms/transmitter.cpp
-    comms/receiver.cpp
+    transmitter.cpp
     lib/tinyusb-xinput/usb_descriptors.c
     lib/tinyusb-xinput/XInputPad.c
 )
@@ -60,6 +59,7 @@ target_link_libraries(${project_name}
         pico_rand
         hardware_spi
         hardware_i2c
+        hardware_adc
         RF24
         RF24Network
         RF24Mesh

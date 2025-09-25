@@ -1,11 +1,12 @@
 #include "pico/stdlib.h"
 #include "pico/rand.h"
 #include <stdio.h>
+#include "hardware/adc.h"
 
 // Pico pins
 #define BUTTON_SYNC_PIN 2
 
-#define BUTTON_WHA_PIN 3
+#define BUTTON_WHA_PIN 26
 #define BUTTON_SGRE_PIN 6
 #define BUTTON_SRED_PIN 7
 #define BUTTON_SYEL_PIN 9
@@ -20,6 +21,7 @@
 // IO Methods
 int pico_led_init();
 void init_pin(int pin);
+void init_adc(int pin);
 void pico_set_led(bool led_on);
 bool is_button_pressed(int button);
 void loop_blink(int times, int sleep);
